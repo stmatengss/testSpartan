@@ -1,11 +1,13 @@
 import scipy.sparse
 import numpy as np
+import spartan as sp
 from StringIO import StringIO
 from datetime import datetime
 from spartan import expr, util, eager
-import test_common
+#import test_common
 import myTestCommon
 from locale import str
+import sys
 
 OUTLINKS_PER_PAGE = 10
 PAGES_PER_WORKER = 100 * 5
@@ -85,11 +87,11 @@ def make_weights(tile, ex):
     dest_=[]
     source_=[]
     value_=[]
-    print ex
-    print ex.get_ul()[1],ex.get_lr()[1]
+#     print ex
+#     print ex.get_ul()[1],ex.get_lr()[1]
     lb=ex.get_ul()[1]
     ub=ex.get_lr()[1]
-    print lb/LEN,ub/LEN
+#     print lb/LEN,ub/LEN
     count=0
 #     for y in store[ex.get_ul()[1]:ex.get_lr()[1]]:
 #         if count%500==0:print count
@@ -129,17 +131,17 @@ def benchmark_pagerank(ctx, timer):
         expr.ndarray(
           (num_pages, num_pages),
           dtype=np.float32,
-          tile_hint=(num_pages, PAGES_PER_WORKER )),
+          tile_hint=(num_pages, PAGES_PER_WORKER/4 )),
         make_weights,
       ))
 #     wts=eager(expr.from_numpy(scipy.sparse.coo_matrix((value, (source, dest)), shape=(NODES,NODES)),tile_hint=(PAGES_PER_WORKER/8,num_pages)))
-    print wts.evaluate()
+#     print wts.evaluate()
     #print wts
     ones = eager(expr.ones((num_pages, 1),
-                        tile_hint=(PAGES_PER_WORKER/2 , 1),
+                        tile_hint=(PAGES_PER_WORKER/4 , 1),
                         dtype=np.float32))
     p=ones
-    for i in range(20):
+    for i in range(4):
         time_begin=datetime.now()
 #         print degree
         tmp1=eager(p/degree)    #3
@@ -156,5 +158,36 @@ def benchmark_pagerank(ctx, timer):
         print "opt-enabled time is ",time_end-time_begin," s"
 #         timer.time_op('pagerank', lambda: (DI*expr.dot(wts, p).optimized()+DI*p).evaluate())
 
+def main(argv):  
+  ip=["192.168.1.54","192.168.1.55","192.168.1.56","192.168.1.57","192.168.1.58","192.168.1.60","192.168.1.61","192.168.1.59"]
+  s="--hosts="
+  #fi=open('data','w')
+  #for n in argv:
+  #  print n\
+  fi=1	
+  i=int(argv[1])
+  print "####"
+  if i<=8:
+    for j in range(i):
+      if j!=(i-1):
+        s=s+ip[j]+":1,"
+      else:
+        s=s+ip[j]+":1" 
+  else :
+    for j in range(i/2):
+      if j!=(i/2-1):
+        s=s+ip[j]+":2,"
+      else:
+        s=s+ip[j]+":2"
+  print s 
+  ctx=sp.initialize(['--cluster=1','--num_workers='+str(i),s])    
+  benchmark_pagerank(ctx,fi)
+  #fi.close()
+  sp.shutdown()    
+
+#if __name__ == '__main__':
+#  	print "success"
+#	main(sys.argv)
+ 
 if __name__ == '__main__':
     myTestCommon.run(__file__) 

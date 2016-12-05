@@ -13,7 +13,7 @@ import time
 import types
 import unittest
 
-FLAGS.add(StrFlag('worker_list', default='1,2,4,8,16'))
+FLAGS.add(StrFlag('worker_list', default='1,2'))
 FLAGS.add(BoolFlag('test_optimizations', default=False))####
 
 def millis(t1, t2):
@@ -95,16 +95,37 @@ def run(filename):
              isinstance(getattr(module, k), types.FunctionType))
           ]
 
-  spartan.config.parse(sys.argv)
+  #spartan.config.parse(sys.argv)
   if benchmarks:
     # csv header
     print 'num_workers,bench,time'
-    workers = [int(w) for w in FLAGS.worker_list.split(',')]
-    
+    workers = [2,1,4]
+    #sp.initialize(['--cluster=1','--num_workers=8','--hosts=192.168.1.55:2,192.168.1.56:2,192.168.1.57:2,192.168.1.58:2'])
+
     for i in workers:
       # restart the cluster
-      FLAGS.num_workers = i
-      ctx = spartan.initialize()
+      #FLAGS.num_workers = i
+      base=54
+      ip=["192.168.1.60","192.168.1.61","192.168.1.54","192.168.1.59","192.168.1.55","192.168.1.59","192.168.1.60","192.168.1.54"]
+      s="--hosts="
+
+      print s   
+      fi=1  
+      print "####"
+      if i<=8:
+        for j in range(i):
+          if j!=(i-1):
+            s=s+ip[j]+":1,"
+          else:
+            s=s+ip[j]+":1" 
+      else :
+        for j in range(i/2):
+          if j!=(i/2-1):
+            s=s+ip[j]+":2,"
+          else:
+            s=s+i
+#       ctx = spartan.initialize("cluster","")
+      ctx=spartan.initialize(['--cluster=1','--num_workers='+str(i),'--num_workers='+str(i),s])  
       
       timer = BenchTimer(i)
       util.log_info('Running benchmarks on %d workers', i)
